@@ -1,51 +1,32 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-registry="ghcr.io/wizeit/agents-cli-release"
-requested_version="${1:-}"
+bundle_directory="${1:?Bundle directory is required}"
 : "${GH_TOKEN:?GH_TOKEN is required}"
 
-if test -n "$requested_version"; then
-  printf '%s' "$requested_version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || {
-    echo "Version must be a stable semantic version" >&2
-    exit 2
-  }
-  tags=("v$requested_version")
-else
-  mapfile -t tags < <(
-    oras repo tags "$registry" |
-      grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' |
-      sort -Vu
-  )
-fi
+version="$(node scripts/verify-release.mjs "$bundle_directory")"
+tag="v$version"
 
-for tag in "${tags[@]}"; do
-  version="${tag#v}"
-  if gh release view "$tag" >/dev/null 2>&1; then
-    continue
-  fi
-
-  temporary_directory="$(mktemp -d "${RUNNER_TEMP:-/tmp}/agents-cli-release.XXXXXXXX")"
-  cleanup() {
-    case "$temporary_directory" in
-      "${RUNNER_TEMP:-/tmp}"/agents-cli-release.*) rm -rf -- "$temporary_directory" ;;
-    esac
-  }
-  trap cleanup EXIT
-
-  oras pull "$registry:$tag" --output "$temporary_directory"
-  node scripts/verify-release.mjs "$temporary_directory" --version "$version" >/dev/null
-  mapfile -t assets < <(find "$temporary_directory" -maxdepth 1 -type f -print | sort)
+if ! gh release view "$tag" >/dev/null 2>&1; then
+  mapfile -t assets < <(find "$bundle_directory" -maxdepth 1 -type f -print | sort)
   gh release create "$tag" \
     --target main \
     --latest=false \
     --title "Agents CLI $tag" \
     --notes "Cryptographically verified standalone release of Agents CLI $tag." \
     "${assets[@]}"
+fi
 
-  cleanup
-  trap - EXIT
-done
+published_directory="$(mktemp -d "${RUNNER_TEMP:-/tmp}/agents-cli-published.XXXXXXXX")"
+cleanup() {
+  case "$published_directory" in
+    "${RUNNER_TEMP:-/tmp}"/agents-cli-published.*) rm -rf -- "$published_directory" ;;
+  esac
+}
+trap cleanup EXIT
+
+gh release download "$tag" --dir "$published_directory"
+node scripts/verify-release.mjs "$published_directory" --version "$version" >/dev/null
 
 mapfile -t release_tags < <(
   gh release list --limit 100 --json tagName,isDraft,isPrerelease \

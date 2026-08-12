@@ -48,7 +48,9 @@ artefacto descargado, por lo que `--to` permite volver a una versión estable pu
 Un release estable contiene los cuatro binarios, instaladores, checksums y un manifiesto
 RSA-SHA256 firmado. El manifiesto fija la versión, revisión fuente, URLs inmutables, tamaños y
 SHA-256. Este repositorio verifica la firma y cada archivo antes de publicar el bundle recibido por
-el relay OCI; no comparte credenciales con el repositorio fuente.
+la rama efímera `release-relay`. El repositorio fuente sólo puede escribir ese transporte mediante
+una deploy key; este repositorio crea y vuelve a descargar el release con su propio
+`GITHUB_TOKEN`, y elimina la rama procesada cuando termina.
 
 La firma propia demuestra integridad y origen dentro de Agents Platform, pero no compra reputación
 de editor a Apple o Microsoft. macOS y Windows pueden mostrar una advertencia inicial del sistema.
