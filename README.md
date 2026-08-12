@@ -45,10 +45,13 @@ artefacto descargado, por lo que `--to` permite volver a una versión estable pu
 
 ## Integridad del release
 
-Un release estable contiene los cuatro binarios, instaladores, checksums y un manifiesto Ed25519
-firmado. El manifiesto fija la versión, revisión fuente, URLs inmutables, tamaños y SHA-256. macOS
-también exige Developer ID y notarización; Windows exige Authenticode. La publicación falla si
-falta una plataforma o una firma.
+Un release estable contiene los cuatro binarios, instaladores, checksums y un manifiesto
+RSA-SHA256 firmado. El manifiesto fija la versión, revisión fuente, URLs inmutables, tamaños y
+SHA-256. Este repositorio verifica la firma y cada archivo antes de publicar el bundle recibido por
+el relay OCI; no comparte credenciales con el repositorio fuente.
+
+La firma propia demuestra integridad y origen dentro de Agents Platform, pero no compra reputación
+de editor a Apple o Microsoft. macOS y Windows pueden mostrar una advertencia inicial del sistema.
 
 No descargues ejecutables desde comentarios, forks ni enlaces alternativos. Los assets válidos se
 publican exclusivamente en la sección **Releases** de este repositorio.
